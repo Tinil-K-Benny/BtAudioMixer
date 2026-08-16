@@ -1,0 +1,25 @@
+# Visual Studio & VS Code
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+
+# Build Results
+[Bb]in/
+[Oo]bj/
+publish/
+
+# Sparse Package generated files
+SparsePackage/_build/
+*.msix
+*.pfx
+
+# .NET / C# standard ignores
+*.cache
+*.pdb
+
+# OS generated files
+.DS_Store
+Thumbs.db

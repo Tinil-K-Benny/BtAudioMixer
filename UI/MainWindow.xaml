@@ -1,0 +1,47 @@
+<Window x:Class="BtAudioMixer.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Bluetooth Audio Mixer" Height="420" Width="520">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="140"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Phone (Bluetooth)" VerticalAlignment="Center"/>
+        <ComboBox x:Name="PhoneDeviceCombo" Grid.Row="0" Grid.Column="1" Margin="0,4" DisplayMemberPath="Name"/>
+        <Button x:Name="ConnectPhoneButton" Grid.Row="0" Grid.Column="2" Content="Connect" Margin="8,4,0,4" Click="ConnectPhoneButton_Click"/>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Phone lands on" VerticalAlignment="Center"/>
+        <ComboBox x:Name="PhoneSourceCombo" Grid.Row="1" Grid.Column="1" Margin="0,4" DisplayMemberPath="Name"/>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="System audio device" VerticalAlignment="Center"/>
+        <ComboBox x:Name="SystemSourceCombo" Grid.Row="2" Grid.Column="1" Margin="0,4" DisplayMemberPath="Name"/>
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Earbuds (output)" VerticalAlignment="Center"/>
+        <ComboBox x:Name="OutputCombo" Grid.Row="3" Grid.Column="1" Margin="0,4" DisplayMemberPath="Name"/>
+        <Button x:Name="RefreshDevicesButton" Grid.Row="3" Grid.Column="2" Content="Refresh" Margin="8,4,0,4" Click="RefreshDevicesButton_Click"/>
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="Phone volume" VerticalAlignment="Center" Margin="0,16,0,0"/>
+        <Slider x:Name="PhoneVolumeSlider" Grid.Row="4" Grid.Column="1" Minimum="0" Maximum="1.5" Margin="0,16,0,0" ValueChanged="PhoneVolumeSlider_ValueChanged"/>
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="System volume" VerticalAlignment="Center"/>
+        <Slider x:Name="SystemVolumeSlider" Grid.Row="5" Grid.Column="1" Minimum="0" Maximum="1.5" ValueChanged="SystemVolumeSlider_ValueChanged"/>
+
+        <Button x:Name="StartStopButton" Grid.Row="6" Grid.Column="1" Content="Start Mixing" Margin="0,16" Click="StartStopButton_Click"/>
+
+        <TextBox x:Name="StatusText" Grid.Row="7" Grid.ColumnSpan="3" IsReadOnly="True" TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" Background="#FFF5F5F5"/>
+    </Grid>
+</Window>
