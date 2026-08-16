@@ -4,6 +4,7 @@ using BtAudioMixer.Core.Devices;
 using BtAudioMixer.Core.Diagnostics;
 using BtAudioMixer.Core.Mixing;
 using BtAudioMixer.Core.Platform;
+using System.ComponentModel;
 using System.Windows;
 using Windows.Media.Audio;
 
@@ -23,6 +24,9 @@ namespace BtAudioMixer.UI
         private readonly AudioPlaybackConnectionManager _btManager;
         private readonly MixerEngine _mixer;
         private readonly AppConfiguration _config;
+        private readonly System.Windows.Forms.NotifyIcon _notifyIcon;
+        private readonly System.Windows.Forms.ToolStripMenuItem _trayToggleMixItem;
+        private bool _isExiting;
 
         public MainWindow()
         {
@@ -33,14 +37,74 @@ namespace BtAudioMixer.UI
             _threadBooster = new MmcssThreadBooster(_logger);
             _telemetry = new LatencyTelemetry(_logger);
             _btManager = new AudioPlaybackConnectionManager(_logger);
-            _btManager.StateChanged += (_, state) => Dispatcher.Invoke(() => Log($"Phone connection state: {state}"));
+            _btManager.StateChanged += (_, state) => Dispatcher.Invoke(() => OnPhoneStateChanged(state));
             _mixer = new MixerEngine(_telemetry, _threadBooster, _logger);
 
             PhoneVolumeSlider.Value = _config.PhoneVolume;
             SystemVolumeSlider.Value = _config.SystemVolume;
 
+            (_notifyIcon, _trayToggleMixItem) = CreateTrayIcon();
+
             Loaded += async (_, _) => await RefreshAllDevicesAsync();
-            Closing += (_, _) => OnClosing();
+            Closing += MainWindow_Closing;
+            StateChanged += MainWindow_StateChanged;
+        }
+
+        private (System.Windows.Forms.NotifyIcon, System.Windows.Forms.ToolStripMenuItem) CreateTrayIcon()
+        {
+            var notifyIcon = new System.Windows.Forms.NotifyIcon
+            {
+                Text = "Bluetooth Audio Mixer",
+                Icon = System.Drawing.SystemIcons.Application,
+                Visible = true
+            };
+
+            notifyIcon.DoubleClick += (_, _) => ShowWindow();
+
+            var contextMenu = new System.Windows.Forms.ContextMenuStrip();
+            contextMenu.Items.Add("Show", null, (_, _) => ShowWindow());
+            contextMenu.Items.Add("-");
+            var toggleMixItem = new System.Windows.Forms.ToolStripMenuItem("Start Mixing");
+            toggleMixItem.Click += (_, _) => StartStopButton_Click(this, new RoutedEventArgs());
+            contextMenu.Items.Add(toggleMixItem);
+            contextMenu.Items.Add("-");
+            contextMenu.Items.Add("Exit", null, (_, _) =>
+            {
+                _isExiting = true;
+                Close();
+            });
+            notifyIcon.ContextMenuStrip = contextMenu;
+
+            return (notifyIcon, toggleMixItem);
+        }
+
+        private void MainWindow_Closing(object? sender, CancelEventArgs e)
+        {
+            if (_isExiting)
+            {
+                OnClosing();
+                return;
+            }
+
+            // Minimize to tray instead of closing, matching AudioPlaybackConnector2 and
+            // WindowsDualAudioManager's tray-first UX — only the tray menu's Exit truly quits.
+            e.Cancel = true;
+            Hide();
+        }
+
+        private void MainWindow_StateChanged(object? sender, EventArgs e)
+        {
+            if (WindowState == WindowState.Minimized)
+            {
+                Hide();
+            }
+        }
+
+        private void ShowWindow()
+        {
+            Show();
+            WindowState = WindowState.Normal;
+            Activate();
         }
 
         private async void RefreshDevicesButton_Click(object sender, RoutedEventArgs e) => await RefreshAllDevicesAsync();
@@ -126,12 +190,23 @@ namespace BtAudioMixer.UI
             }
         }
 
+        private void OnPhoneStateChanged(AudioPlaybackConnectionState state)
+        {
+            Log($"Phone connection state: {state}");
+            bool connected = state == AudioPlaybackConnectionState.Opened;
+            PhoneStatusDot.Fill = connected ? System.Windows.Media.Brushes.LimeGreen : System.Windows.Media.Brushes.Gray;
+            PhoneStatusText.Text = state.ToString();
+        }
+
         private void StartStopButton_Click(object sender, RoutedEventArgs e)
         {
             if (_mixer.IsRunning)
             {
                 _mixer.Stop();
                 StartStopButton.Content = "Start Mixing";
+                _trayToggleMixItem.Text = "Start Mixing";
+                MixerStatusDot.Fill = System.Windows.Media.Brushes.Gray;
+                MixerStatusText.Text = "Stopped";
                 Log("Mixer stopped.");
                 return;
             }
@@ -158,6 +233,9 @@ namespace BtAudioMixer.UI
                 _config.OutputDeviceId = output.Id;
 
                 StartStopButton.Content = "Stop Mixing";
+                _trayToggleMixItem.Text = "Stop Mixing";
+                MixerStatusDot.Fill = System.Windows.Media.Brushes.LimeGreen;
+                MixerStatusText.Text = "Running";
                 Log($"Mixing '{phoneSource.Name}' + '{systemSource.Name}' -> '{output.Name}'.");
             }
             catch (Exception ex)
@@ -170,18 +248,28 @@ namespace BtAudioMixer.UI
         {
             _mixer.PhoneVolume = (float)e.NewValue;
             _config.PhoneVolume = (float)e.NewValue;
+            if (PhoneVolumeLabel is not null)
+            {
+                PhoneVolumeLabel.Text = $"{e.NewValue:P0}";
+            }
         }
 
         private void SystemVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             _mixer.SystemVolume = (float)e.NewValue;
             _config.SystemVolume = (float)e.NewValue;
+            if (SystemVolumeLabel is not null)
+            {
+                SystemVolumeLabel.Text = $"{e.NewValue:P0}";
+            }
         }
 
         private void Log(string message) => StatusText.AppendText(message + Environment.NewLine);
 
         private void OnClosing()
         {
+            _notifyIcon.Visible = false;
+            _notifyIcon.Dispose();
             _config.Save(_logger);
             _mixer.Dispose();
             _btManager.Dispose();

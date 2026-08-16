@@ -38,7 +38,9 @@ namespace BtAudioMixer.Core.Capture
             {
                 if (_volumeProvider is not null)
                 {
-                    _volumeProvider.Volume = Math.Clamp(value, 0f, 2f);
+                    float clamped = Math.Clamp(value, 0f, 2f);
+                    _volumeProvider.Volume = clamped;
+                    _logger.LogInformation("CaptureChannel", $"Channel '{ChannelId}' gain set to {clamped:F2}.");
                 }
             }
         }

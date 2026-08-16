@@ -6,10 +6,16 @@
 *.sln.docstates
 *.suo
 
+# JetBrains Rider
+.idea/
+*.DotSettings.user
+
 # Build Results
 [Bb]in/
 [Oo]bj/
 publish/
+TestResults/
+*.dmp
 
 # Sparse Package generated files
 SparsePackage/_build/

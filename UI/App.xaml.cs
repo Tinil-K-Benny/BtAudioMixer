@@ -1,8 +1,6 @@
-using System.Windows;
-
 namespace BtAudioMixer.UI
 {
-    public partial class App : Application
+    public partial class App : System.Windows.Application
     {
     }
 }
