@@ -166,4 +166,4 @@ BtAudioMixer/                (repository root)
 
 ## License
 
-_Add a license before publishing — none is currently specified._
+MIT
