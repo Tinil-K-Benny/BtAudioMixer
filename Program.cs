@@ -1,13 +1,34 @@
 using BtAudioMixer.UI;
+using System.Threading;
 using System.Windows;
 
 namespace BtAudioMixer
 {
     internal static class Program
     {
+        // Two running instances independently open WASAPI capture/render sessions
+        // against the same devices; whichever grabbed them first is what you actually
+        // hear, while the other's sliders silently affect nothing you can hear. A
+        // named Mutex is the standard .NET single-instance guard — same job as
+        // AudioPlaybackConnector2's SingleInstanceGuard, just via the BCL primitive
+        // instead of a hand-rolled one.
+        private const string SingleInstanceMutexName = "BtAudioMixer.SingleInstance.9f3b6e2a";
+
         [STAThread]
         private static void Main()
         {
+            using var singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutexName, out bool createdNew);
+            if (!createdNew)
+            {
+                var app = new System.Windows.Application();
+                System.Windows.MessageBox.Show(
+                    "Bluetooth Audio Mixer is already running. Check your system tray.",
+                    "Already Running",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
             // AudioPlaybackConnection.OpenAsync() is a WinRT API gated behind Package
             // Identity. Without it, every ConnectAsync() call returns DeniedBySystem
             // (HRESULT 0x8007139F). Reading Package.Current throws a COMException when
@@ -17,7 +38,7 @@ namespace BtAudioMixer
             {
                 // Need a message pump for MessageBox; create it minimally.
                 var app = new System.Windows.Application();
-                MessageBox.Show(
+                System.Windows.MessageBox.Show(
                     "BtAudioMixer needs a Package Identity to open Bluetooth audio connections.\n\n" +
                     "Run the one-time setup script (no admin required):\n\n" +
                     "  1. Build the project (Ctrl+Shift+B in Visual Studio).\n" +

@@ -89,6 +89,13 @@ namespace BtAudioMixer.Core.Mixing
 
         private IWavePlayer CreateWavePlayer(MMDevice device, IWaveProvider waveProvider)
         {
+            // Exclusive mode was tried here to stop Windows' own native Bluetooth
+            // A2DP render session from also playing to the same earbuds independent
+            // of our gain control — it locked the device successfully but produced
+            // no audible output on the AirBass earbuds (driver accepted the format
+            // handshake without actually rendering it, a known WASAPI exclusive-mode
+            // risk). Shared mode is what's proven to render correctly all session;
+            // the leak is solved at the Windows default-output-device level instead.
             try
             {
                 var player = new WasapiOut(device, AudioClientShareMode.Shared, useEventSync: true, latency: _targetLatencyMs);
