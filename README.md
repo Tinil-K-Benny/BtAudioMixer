@@ -1,6 +1,6 @@
 # Bluetooth Audio Mixer
 
-Mix your **phone's Bluetooth audio** and your **PC's system audio** into a single stream, each with its own independent volume, and send the blend to your real Bluetooth headphones — so a phone notification never mutes your game, and your game never mutes your call.
+Mix your **phone's Bluetooth audio** and your **PC's system audio** into a single stream, each with its own independent volume, and send the blend to your real Bluetooth headphones — so nothing on your phone ever mutes what's playing on your PC, and nothing on your PC ever mutes your phone.
 
 ## Table of contents
 
@@ -20,7 +20,7 @@ Mix your **phone's Bluetooth audio** and your **PC's system audio** into a singl
 
 ## The problem
 
-Bluetooth's audio profile (A2DP) only carries **one active stream at a time**. Multipoint earbuds paired to both your phone and your PC will happily switch between them — but the moment the second source starts playing, the first one gets muted. Queuing for a match on your phone while gaming on your PC means every notification cuts your game audio, and vice versa.
+Bluetooth's audio profile (A2DP) only carries **one active stream at a time**. Multipoint earbuds paired to both your phone and your PC will happily switch between them — but the moment the second source starts playing, the first one gets muted. Whatever you're doing on the PC — gaming, watching a video, on a call — a phone notification, podcast, or incoming call cuts it off, and vice versa. Anyone routinely using the same earbuds for both devices at once runs into this; gaming while waiting on a phone notification is just one common case of it.
 
 ## The idea
 
@@ -29,7 +29,7 @@ Bypass multipoint entirely. Connect the earbuds to the **PC only**. Bring the ph
 ```
  PHONE ──(Bluetooth A2DP)──► AudioPlaybackConnection ──► Virtual Cable ──► capture ──┐
                                                                                       │
- PC / game audio ──────────────────────────────────────────────────────► capture ──┤
+ PC / system audio ─────────────────────────────────────────────────────► capture ──┤
                                                                                       ▼
                                                                               ┌───────────────┐
                                                                               │     MIXER     │
