@@ -2,11 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace BtAudioMixer.Core.Platform
 {
-    /// <summary>
-    /// Registers a thread with Windows' Multimedia Class Scheduler Service (MMCSS)
-    /// for glitch-resistant real-time audio scheduling. Ported from
-    /// WindowsDualAudioManager's Core.Platform.MmcssThreadBooster.
-    /// </summary>
     public sealed class MmcssThreadBooster : IDisposable
     {
         private const string ProAudioTaskName = "Pro Audio";
@@ -26,9 +21,9 @@ namespace BtAudioMixer.Core.Platform
         }
 
         private IntPtr _avrtHandle = IntPtr.Zero;
-        private readonly Diagnostics.IAppLogger _logger;
+        private readonly Diagnostics.FileAppLogger _logger;
 
-        public MmcssThreadBooster(Diagnostics.IAppLogger logger)
+        public MmcssThreadBooster(Diagnostics.FileAppLogger logger)
         {
             _logger = logger;
         }

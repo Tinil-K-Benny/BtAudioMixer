@@ -3,11 +3,7 @@ using System.IO;
 
 namespace BtAudioMixer.Core.Diagnostics
 {
-    /// <summary>
-    /// Writes structured log lines to %AppData%/BtAudioMixer/error_log.txt.
-    /// Ported from WindowsDualAudioManager's Core.Diagnostics.FileAppLogger.
-    /// </summary>
-    public sealed class FileAppLogger : IAppLogger
+    public sealed class FileAppLogger
     {
         private const string LogDirectoryName = "BtAudioMixer";
         private const string LogFileName = "error_log.txt";
@@ -52,7 +48,6 @@ namespace BtAudioMixer.Core.Diagnostics
                 }
                 catch
                 {
-                    // Nowhere left to safely report this; never let logging crash the audio pipeline.
                 }
             }
 

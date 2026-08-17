@@ -3,18 +3,12 @@ using NAudio.CoreAudioApi;
 
 namespace BtAudioMixer.Core.Devices
 {
-    /// <summary>
-    /// Enumerates render endpoints. Ported from WindowsDualAudioManager's
-    /// Core.Devices.AudioDeviceRepository, trimmed of the hotplug notification
-    /// plumbing (IMMNotificationClient / DeviceRemoved / DeviceStateChanged) that
-    /// WindowsDualAudioManager's UI subscribed to but nothing here does.
-    /// </summary>
     public sealed class AudioDeviceRepository : IDisposable
     {
         private readonly MMDeviceEnumerator _deviceEnumerator;
-        private readonly IAppLogger _logger;
+        private readonly FileAppLogger _logger;
 
-        public AudioDeviceRepository(IAppLogger logger)
+        public AudioDeviceRepository(FileAppLogger logger)
         {
             _logger = logger;
             _deviceEnumerator = new MMDeviceEnumerator();
@@ -23,17 +17,7 @@ namespace BtAudioMixer.Core.Devices
         public List<AudioDevice> GetRenderDevices()
         {
             var devices = new List<AudioDevice>();
-
-            string defaultDeviceId;
-            try
-            {
-                defaultDeviceId = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia).ID;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning("AudioDeviceRepository", $"Could not resolve the default render endpoint: {ex.Message}");
-                defaultDeviceId = string.Empty;
-            }
+            string? defaultDeviceId = GetDefaultDeviceId();
 
             foreach (var device in _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
             {
@@ -46,6 +30,19 @@ namespace BtAudioMixer.Core.Devices
             }
 
             return devices;
+        }
+
+        public string? GetDefaultDeviceId()
+        {
+            try
+            {
+                return _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia).ID;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("AudioDeviceRepository", $"Could not resolve the default render endpoint: {ex.Message}");
+                return null;
+            }
         }
 
         public MMDevice GetDevice(string deviceId)

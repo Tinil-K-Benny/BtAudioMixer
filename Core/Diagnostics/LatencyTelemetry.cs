@@ -3,31 +3,20 @@ using System.Threading;
 
 namespace BtAudioMixer.Core.Diagnostics
 {
-    /// <summary>
-    /// Tracks per-channel buffering health. Ported from WindowsDualAudioManager's
-    /// Core.Diagnostics.LatencyTelemetry, trimmed to what this project's pipeline
-    /// actually reports (no per-sample peak/RMS tap is wired up here).
-    /// </summary>
     public sealed class LatencyTelemetry
     {
         private sealed class ChannelState
         {
-            public double BufferedMilliseconds;
             public long UnderrunCount;
             public long OverrunCount;
         }
 
         private readonly ConcurrentDictionary<string, ChannelState> _channels = new();
-        private readonly IAppLogger _logger;
+        private readonly FileAppLogger _logger;
 
-        public LatencyTelemetry(IAppLogger logger)
+        public LatencyTelemetry(FileAppLogger logger)
         {
             _logger = logger;
-        }
-
-        public void ReportBufferedMilliseconds(string channelId, double bufferedMilliseconds)
-        {
-            GetOrAddChannel(channelId).BufferedMilliseconds = bufferedMilliseconds;
         }
 
         public void ReportUnderrun(string channelId, double shortfallMilliseconds)

@@ -1,13 +1,5 @@
 namespace BtAudioMixer.Core.Buffering
 {
-    /// <summary>
-    /// Fixed-capacity byte ring buffer for exactly one producer thread (a WASAPI
-    /// capture callback) and one consumer thread (the mixer's render pull) per
-    /// instance. Ported from WindowsDualAudioManager's Core.Buffering.SpscRingBuffer.
-    /// Overflow always drops the oldest buffered bytes (correct behavior for live
-    /// audio); the configurable drop-newest policy that codebase carried had no
-    /// caller here, so it isn't reproduced.
-    /// </summary>
     public sealed class SpscRingBuffer
     {
         private readonly byte[] _buffer;
@@ -24,17 +16,6 @@ namespace BtAudioMixer.Core.Buffering
             }
 
             _buffer = new byte[capacityInBytes];
-        }
-
-        public int AvailableBytes
-        {
-            get
-            {
-                lock (_gate)
-                {
-                    return _availableBytes;
-                }
-            }
         }
 
         public int Write(byte[] data, int offset, int count)
@@ -82,16 +63,6 @@ namespace BtAudioMixer.Core.Buffering
 
                 _availableBytes -= totalBytesRead;
                 return totalBytesRead;
-            }
-        }
-
-        public void Clear()
-        {
-            lock (_gate)
-            {
-                _writePosition = 0;
-                _readPosition = 0;
-                _availableBytes = 0;
             }
         }
 

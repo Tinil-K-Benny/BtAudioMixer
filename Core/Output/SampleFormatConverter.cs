@@ -3,11 +3,6 @@ using NAudio.Wave.SampleProviders;
 
 namespace BtAudioMixer.Core.Output
 {
-    /// <summary>
-    /// Wraps a sample provider with resampling and/or channel conversion, only when
-    /// the source format actually differs from the target. Ported from
-    /// WindowsDualAudioManager's Core.Output.SampleFormatConverter.
-    /// </summary>
     public static class SampleFormatConverter
     {
         public static ISampleProvider Convert(ISampleProvider source, WaveFormat targetFormat)

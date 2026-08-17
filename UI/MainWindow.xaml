@@ -17,12 +17,14 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <ComboBox x:Name="PhoneDeviceCombo" Grid.Column="0" DisplayMemberPath="Name" Margin="0,0,8,0"/>
-                    <Button x:Name="ConnectPhoneButton" Grid.Column="1" Content="Connect" Width="90" Click="ConnectPhoneButton_Click"/>
+                    <Button x:Name="ConnectPhoneButton" Grid.Column="1" Content="Connect" Width="90" Margin="0,0,8,0" Click="ConnectPhoneButton_Click"/>
+                    <Button x:Name="DisconnectPhoneButton" Grid.Column="2" Content="Disconnect" Width="90" Click="DisconnectPhoneButton_Click"/>
                 </Grid>
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <Ellipse x:Name="PhoneStatusDot" Width="10" Height="10" Fill="Gray" Margin="0,0,6,0"/>
+                    <Ellipse x:Name="PhoneStatusDot" Width="10" Height="10" Fill="Red" Margin="0,0,6,0"/>
                     <TextBlock x:Name="PhoneStatusText" Text="Not connected" VerticalAlignment="Center"/>
                 </StackPanel>
             </StackPanel>
@@ -37,11 +39,16 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Phone lands on" VerticalAlignment="Center"/>
-                <ComboBox x:Name="PhoneSourceCombo" Grid.Row="0" Grid.Column="1" Margin="0,3" DisplayMemberPath="Name"/>
+                <ComboBox x:Name="PhoneSourceCombo" Grid.Row="0" Grid.Column="1" Margin="0,3" DisplayMemberPath="Name" SelectionChanged="PhoneSourceCombo_SelectionChanged"/>
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="System audio device" VerticalAlignment="Center"/>
                 <ComboBox x:Name="SystemSourceCombo" Grid.Row="1" Grid.Column="1" Margin="0,3" DisplayMemberPath="Name"/>
+                <CheckBox x:Name="AutoSwitchDefaultDeviceCheckBox" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                          Content="Set 'Phone lands on' as the Windows default output while mixing"
+                          Margin="0,6,0,0"
+                          Checked="AutoSwitchDefaultDeviceCheckBox_Checked" Unchecked="AutoSwitchDefaultDeviceCheckBox_Unchecked"/>
             </Grid>
         </GroupBox>
 

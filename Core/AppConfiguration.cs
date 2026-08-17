@@ -4,10 +4,6 @@ using System.Text.Json;
 
 namespace BtAudioMixer.Core
 {
-    /// <summary>
-    /// Persisted settings: which devices to use for each role, and each source's
-    /// last volume, so the mixer comes back up the same way it was left.
-    /// </summary>
     public class AppConfiguration
     {
         private const string ConfigFileName = "config.json";
@@ -23,8 +19,9 @@ namespace BtAudioMixer.Core
         public string? OutputDeviceId { get; set; }
         public float PhoneVolume { get; set; } = 1.0f;
         public float SystemVolume { get; set; } = 1.0f;
+        public bool AutoSwitchDefaultDevice { get; set; }
 
-        public static AppConfiguration Load(IAppLogger logger)
+        public static AppConfiguration Load(FileAppLogger logger)
         {
             try
             {
@@ -42,7 +39,7 @@ namespace BtAudioMixer.Core
             return new AppConfiguration();
         }
 
-        public void Save(IAppLogger logger)
+        public void Save(FileAppLogger logger)
         {
             try
             {

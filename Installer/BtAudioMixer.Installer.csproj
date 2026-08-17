@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BtAudioMixer.Installer</RootNamespace>
+    <AssemblyName>BtAudioMixer.Installer</AssemblyName>
+    <Platforms>x64</Platforms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <SdkToolFiles Include="$(PkgMicrosoft_Windows_SDK_BuildTools)\bin\10.0.26100.0\x64\makeappx.exe" />
+    <SdkToolFiles Include="$(PkgMicrosoft_Windows_SDK_BuildTools)\bin\10.0.26100.0\x64\signtool.exe" />
+    <SdkToolFiles Include="$(PkgMicrosoft_Windows_SDK_BuildTools)\bin\10.0.26100.0\x64\signtool.exe.manifest" />
+    <SdkToolFiles Include="$(PkgMicrosoft_Windows_SDK_BuildTools)\bin\10.0.26100.0\x64\mssign32.dll" />
+    <SdkToolFiles Include="$(PkgMicrosoft_Windows_SDK_BuildTools)\bin\10.0.26100.0\x64\opcservices.dll" />
+    <SdkToolFiles Include="$(PkgMicrosoft_Windows_SDK_BuildTools)\bin\10.0.26100.0\x64\wintrust.dll" />
+    <SdkToolFiles Include="$(PkgMicrosoft_Windows_SDK_BuildTools)\bin\10.0.26100.0\x64\wintrust.dll.ini" />
+    <None Include="@(SdkToolFiles)" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" Link="Tools\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>
