@@ -12,12 +12,9 @@ namespace BtAudioMixer.UI
 {
     public partial class MainWindow : Window
     {
-        private sealed record BtDeviceItem(string Id, string Name)
-        {
-            public override string ToString() => Name;
-        }
+        private sealed record BtDeviceItem(string Id, string Name);
 
-        private readonly IAppLogger _logger = new FileAppLogger();
+        private readonly FileAppLogger _logger = new();
         private readonly AudioDeviceRepository _deviceRepository;
         private readonly MmcssThreadBooster _threadBooster;
         private readonly LatencyTelemetry _telemetry;
@@ -27,6 +24,8 @@ namespace BtAudioMixer.UI
         private readonly System.Windows.Forms.NotifyIcon _notifyIcon;
         private readonly System.Windows.Forms.ToolStripMenuItem _trayToggleMixItem;
         private bool _isExiting;
+        private bool _suppressAutoSwitchEvents;
+        private string? _originalDefaultDeviceId;
 
         public MainWindow()
         {
@@ -39,13 +38,18 @@ namespace BtAudioMixer.UI
             _btManager = new AudioPlaybackConnectionManager(_logger);
             _btManager.StateChanged += (_, state) => Dispatcher.Invoke(() => OnPhoneStateChanged(state));
             _mixer = new MixerEngine(_telemetry, _threadBooster, _logger);
+            UpdatePhoneStatusDisplay();
 
             PhoneVolumeSlider.Value = _config.PhoneVolume;
             SystemVolumeSlider.Value = _config.SystemVolume;
 
             (_notifyIcon, _trayToggleMixItem) = CreateTrayIcon();
 
-            Loaded += async (_, _) => await RefreshAllDevicesAsync();
+            Loaded += async (_, _) =>
+            {
+                await RefreshAllDevicesAsync();
+                ApplySavedAutoSwitchSetting();
+            };
             Closing += MainWindow_Closing;
             StateChanged += MainWindow_StateChanged;
         }
@@ -86,8 +90,6 @@ namespace BtAudioMixer.UI
                 return;
             }
 
-            // Minimize to tray instead of closing, matching AudioPlaybackConnector2 and
-            // WindowsDualAudioManager's tray-first UX — only the tray menu's Exit truly quits.
             e.Cancel = true;
             Hide();
         }
@@ -161,6 +163,108 @@ namespace BtAudioMixer.UI
             }
         }
 
+        private void ApplySavedAutoSwitchSetting()
+        {
+            _suppressAutoSwitchEvents = true;
+            AutoSwitchDefaultDeviceCheckBox.IsChecked = _config.AutoSwitchDefaultDevice;
+            _suppressAutoSwitchEvents = false;
+        }
+
+        private void PhoneSourceCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_mixer.IsRunning && AutoSwitchDefaultDeviceCheckBox.IsChecked == true && PhoneSourceCombo.SelectedItem is AudioDevice phoneSource)
+            {
+                TrySwitchDefaultDevice(phoneSource);
+            }
+        }
+
+        private void AutoSwitchDefaultDeviceCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_suppressAutoSwitchEvents)
+            {
+                return;
+            }
+
+            if (PhoneSourceCombo.SelectedItem is not AudioDevice phoneSource)
+            {
+                Log("Select a 'Phone lands on' device first.");
+                AutoSwitchDefaultDeviceCheckBox.IsChecked = false;
+                return;
+            }
+
+            var result = System.Windows.MessageBox.Show(
+                $"While mixing is running, this will change your Windows default playback device to '{phoneSource.Name}', " +
+                "and restore your previous default the moment you stop mixing.\n\nContinue?",
+                "Change Windows Default Playback Device",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes)
+            {
+                AutoSwitchDefaultDeviceCheckBox.IsChecked = false;
+                return;
+            }
+
+            _config.AutoSwitchDefaultDevice = true;
+
+            if (_mixer.IsRunning)
+            {
+                TrySwitchDefaultDevice(phoneSource);
+            }
+        }
+
+        private void AutoSwitchDefaultDeviceCheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (_suppressAutoSwitchEvents)
+            {
+                return;
+            }
+
+            _config.AutoSwitchDefaultDevice = false;
+            RestoreOriginalDefaultDevice();
+        }
+
+        private void TrySwitchDefaultDevice(AudioDevice device)
+        {
+            try
+            {
+                _originalDefaultDeviceId ??= _deviceRepository.GetDefaultDeviceId();
+                if (_originalDefaultDeviceId == device.Id)
+                {
+                    return;
+                }
+
+                DefaultAudioDeviceSwitcher.SetDefaultDevice(device.Id);
+                Log($"Windows default playback device switched to '{device.Name}'.");
+            }
+            catch (Exception ex)
+            {
+                Log($"Could not switch the Windows default playback device: {ex.Message}");
+            }
+        }
+
+        private void RestoreOriginalDefaultDevice()
+        {
+            if (_originalDefaultDeviceId is null)
+            {
+                return;
+            }
+
+            try
+            {
+                DefaultAudioDeviceSwitcher.SetDefaultDevice(_originalDefaultDeviceId);
+                Log("Restored your previous Windows default playback device.");
+            }
+            catch (Exception ex)
+            {
+                Log($"Could not restore the previous default playback device: {ex.Message}");
+            }
+            finally
+            {
+                _originalDefaultDeviceId = null;
+            }
+        }
+
         private static void SelectById(System.Windows.Controls.ComboBox combo, List<AudioDevice> devices, string? id)
         {
             var match = devices.FirstOrDefault(d => d.Id == id) ?? devices.FirstOrDefault(d => d.IsDefault);
@@ -182,7 +286,8 @@ namespace BtAudioMixer.UI
             {
                 await _btManager.ConnectAsync(device.Id);
                 _config.PhoneBluetoothDeviceId = device.Id;
-                Log($"Connected to '{device.Name}'. Now assign this app's output device to your phone-source device once, in Windows Settings > System > Sound > Volume mixer.");
+                UpdatePhoneStatusDisplay();
+                Log($"Prepared connection to '{device.Name}'. Audio starts flowing once you click Start Mixing.");
             }
             catch (Exception ex)
             {
@@ -190,24 +295,48 @@ namespace BtAudioMixer.UI
             }
         }
 
-        private void OnPhoneStateChanged(AudioPlaybackConnectionState state)
-        {
-            Log($"Phone connection state: {state}");
-            bool connected = state == AudioPlaybackConnectionState.Opened;
-            PhoneStatusDot.Fill = connected ? System.Windows.Media.Brushes.LimeGreen : System.Windows.Media.Brushes.Gray;
-            PhoneStatusText.Text = state.ToString();
-        }
-
-        private void StartStopButton_Click(object sender, RoutedEventArgs e)
+        private void DisconnectPhoneButton_Click(object sender, RoutedEventArgs e)
         {
             if (_mixer.IsRunning)
             {
-                _mixer.Stop();
-                StartStopButton.Content = "Start Mixing";
-                _trayToggleMixItem.Text = "Start Mixing";
-                MixerStatusDot.Fill = System.Windows.Media.Brushes.Gray;
-                MixerStatusText.Text = "Stopped";
-                Log("Mixer stopped.");
+                StopMixing();
+            }
+
+            _btManager.Disconnect();
+            UpdatePhoneStatusDisplay();
+            Log("Phone disconnected.");
+        }
+
+        private void OnPhoneStateChanged(AudioPlaybackConnectionState state)
+        {
+            Log($"Phone connection state: {state}");
+            UpdatePhoneStatusDisplay();
+        }
+
+        private void UpdatePhoneStatusDisplay()
+        {
+            if (!_btManager.IsConnected)
+            {
+                PhoneStatusDot.Fill = System.Windows.Media.Brushes.Red;
+                PhoneStatusText.Text = "Not connected";
+            }
+            else if (_mixer.IsRunning)
+            {
+                PhoneStatusDot.Fill = System.Windows.Media.Brushes.LimeGreen;
+                PhoneStatusText.Text = "Connected, mixing";
+            }
+            else
+            {
+                PhoneStatusDot.Fill = System.Windows.Media.Brushes.Orange;
+                PhoneStatusText.Text = "Connected, not mixing";
+            }
+        }
+
+        private async void StartStopButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_mixer.IsRunning)
+            {
+                StopMixing();
                 return;
             }
 
@@ -221,6 +350,11 @@ namespace BtAudioMixer.UI
 
             try
             {
+                if (_btManager.IsConnected)
+                {
+                    await _btManager.OpenAsync();
+                }
+
                 var phoneMmDevice = _deviceRepository.GetDevice(phoneSource.Id);
                 var systemMmDevice = _deviceRepository.GetDevice(systemSource.Id);
                 var outputMmDevice = _deviceRepository.GetDevice(output.Id);
@@ -236,12 +370,41 @@ namespace BtAudioMixer.UI
                 _trayToggleMixItem.Text = "Stop Mixing";
                 MixerStatusDot.Fill = System.Windows.Media.Brushes.LimeGreen;
                 MixerStatusText.Text = "Running";
+                SetAudioSourceControlsEnabled(false);
+                UpdatePhoneStatusDisplay();
+
+                if (_config.AutoSwitchDefaultDevice)
+                {
+                    TrySwitchDefaultDevice(phoneSource);
+                }
+
                 Log($"Mixing '{phoneSource.Name}' + '{systemSource.Name}' -> '{output.Name}'.");
             }
             catch (Exception ex)
             {
                 Log($"Failed to start mixer: {ex.Message}");
             }
+        }
+
+        private void StopMixing()
+        {
+            _mixer.Stop();
+            StartStopButton.Content = "Start Mixing";
+            _trayToggleMixItem.Text = "Start Mixing";
+            MixerStatusDot.Fill = System.Windows.Media.Brushes.Gray;
+            MixerStatusText.Text = "Stopped";
+            SetAudioSourceControlsEnabled(true);
+            UpdatePhoneStatusDisplay();
+            RestoreOriginalDefaultDevice();
+            Log("Mixer stopped.");
+        }
+
+        private void SetAudioSourceControlsEnabled(bool enabled)
+        {
+            PhoneSourceCombo.IsEnabled = enabled;
+            SystemSourceCombo.IsEnabled = enabled;
+            OutputCombo.IsEnabled = enabled;
+            RefreshDevicesButton.IsEnabled = enabled;
         }
 
         private void PhoneVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -268,6 +431,7 @@ namespace BtAudioMixer.UI
 
         private void OnClosing()
         {
+            RestoreOriginalDefaultDevice();
             _notifyIcon.Visible = false;
             _notifyIcon.Dispose();
             _config.Save(_logger);

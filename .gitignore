@@ -14,8 +14,13 @@
 [Bb]in/
 [Oo]bj/
 publish/
+dist/
 TestResults/
 *.dmp
+
+# Release packaging (built by Build-Distribution.ps1, uploaded to GitHub Releases, not committed)
+BtAudioMixer-Setup.zip
+RELEASE_NOTES_DRAFT.md
 
 # Sparse Package generated files
 SparsePackage/_build/

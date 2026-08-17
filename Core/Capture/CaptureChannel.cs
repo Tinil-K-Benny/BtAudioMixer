@@ -8,14 +8,6 @@ using NAudio.Wave.SampleProviders;
 
 namespace BtAudioMixer.Core.Capture
 {
-    /// <summary>
-    /// Owns one WASAPI loopback capture of a specific render device (not necessarily
-    /// the system default — this is what lets two sources be captured at once, unlike
-    /// WindowsDualAudioManager's LoopbackCaptureService which only ever captures
-    /// "the" default endpoint). Exposes the captured audio as an ISampleProvider
-    /// already resampled to the mixer's common format and gain-scaled, ready to feed
-    /// into a MixingSampleProvider.
-    /// </summary>
     public sealed class CaptureChannel : IDisposable
     {
         private const int RingBufferSafetyMarginMs = 20;
@@ -23,7 +15,7 @@ namespace BtAudioMixer.Core.Capture
         private readonly MMDevice _device;
         private readonly LatencyTelemetry _telemetry;
         private readonly MmcssThreadBooster _threadBooster;
-        private readonly IAppLogger _logger;
+        private readonly FileAppLogger _logger;
         private WasapiLoopbackCapture? _capture;
         private SpscRingBuffer? _ringBuffer;
         private VolumeSampleProvider? _volumeProvider;
@@ -46,7 +38,7 @@ namespace BtAudioMixer.Core.Capture
         }
 
         public CaptureChannel(string channelId, MMDevice device, WaveFormat mixFormat, float initialVolume,
-            int targetLatencyMs, LatencyTelemetry telemetry, MmcssThreadBooster threadBooster, IAppLogger logger)
+            int targetLatencyMs, LatencyTelemetry telemetry, MmcssThreadBooster threadBooster, FileAppLogger logger)
         {
             ChannelId = channelId;
             _device = device;
@@ -94,8 +86,6 @@ namespace BtAudioMixer.Core.Capture
         }
 
         public void Start() => _capture?.StartRecording();
-
-        public void Stop() => _capture?.StopRecording();
 
         private void OnDataAvailable(object? sender, WaveInEventArgs e)
         {

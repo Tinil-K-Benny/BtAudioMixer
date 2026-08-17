@@ -1,23 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Sparse-package manifest for BtAudioMixer.
-  Purpose: grants this unpackaged Win32/WPF exe a Package Identity so that
-           Windows.Media.Audio.AudioPlaybackConnection.OpenAsync() succeeds.
-           (That WinRT API is gated behind package identity and returns
-           DeniedBySystem / 0x8007139F when called from an unpackaged process.)
-
-  Registration — run once after every build, no elevation required:
-    .\SparsePackage\Register-SparsePackage.ps1
-
-  Unregistration / cleanup:
-    .\SparsePackage\Unregister-SparsePackage.ps1
-
-  How it works:
-    Add-AppxPackage -Register <this file> -ExternalLocation <exe dir>
-    tells Windows the exe lives outside the package store. Windows then
-    stamps the process with a Package Identity when the exe launches, which
-    satisfies the identity check inside AudioPlaybackConnection.OpenAsync().
--->
 <Package
     xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
     xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
@@ -25,11 +6,6 @@
     xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
     IgnorableNamespaces="uap uap10 rescap">
 
-  <!--
-    Publisher must be "CN=BtAudioMixer" — matches what Register-SparsePackage.ps1
-    puts in the self-signed cert (only needed if you switch to the pack+sign path).
-    For the -Register path used here no cert is required.
-  -->
   <Identity
       Name="BtAudioMixer.SparsePackage"
       Publisher="CN=BtAudioMixer"
@@ -51,21 +27,12 @@
         MaxVersionTested="10.0.26100.0" />
   </Dependencies>
 
-  <!--
-    runFullTrust: required for any desktop Win32 / WPF application.
-    Without this the package activation model will refuse to launch the exe.
-  -->
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
     <DeviceCapability Name="bluetooth" />
   </Capabilities>
 
   <Applications>
-    <!--
-      uap10:AllowExternalContent="true" tells Windows the exe is at ExternalLocation
-      rather than inside a standard package-store folder. This attribute is what makes
-      this a "sparse package with external location" rather than a full MSIX.
-    -->
     <Application
         Id="BtAudioMixer"
         Executable="BtAudioMixer.exe"

@@ -7,22 +7,13 @@ using NAudio.Wave.SampleProviders;
 
 namespace BtAudioMixer.Core.Mixing
 {
-    /// <summary>
-    /// The actual novel part of this project (see Docs/bluetooth-audio-mixer-plan.md
-    /// §4): captures two independent render devices in parallel — where the phone's
-    /// AudioPlaybackConnection audio lands, and system/game audio — gives each its
-    /// own gain, sums them with NAudio's MixingSampleProvider, soft-clips the result,
-    /// and renders the single blended stream to the real Bluetooth earbuds. Neither
-    /// WindowsDualAudioManager (one capture -> many independently-volumed outputs)
-    /// nor AudioPlaybackConnector2 (phone connection only, no mixing) does this.
-    /// </summary>
     public sealed class MixerEngine : IDisposable
     {
         public static readonly WaveFormat MixFormat = WaveFormat.CreateIeeeFloatWaveFormat(48000, 2);
 
         private readonly LatencyTelemetry _telemetry;
         private readonly MmcssThreadBooster _threadBooster;
-        private readonly IAppLogger _logger;
+        private readonly FileAppLogger _logger;
         private readonly int _targetLatencyMs;
 
         private CaptureChannel? _phoneChannel;
@@ -44,7 +35,7 @@ namespace BtAudioMixer.Core.Mixing
             set { if (_systemChannel is not null) _systemChannel.Volume = value; }
         }
 
-        public MixerEngine(LatencyTelemetry telemetry, MmcssThreadBooster threadBooster, IAppLogger logger, int targetLatencyMs = 40)
+        public MixerEngine(LatencyTelemetry telemetry, MmcssThreadBooster threadBooster, FileAppLogger logger, int targetLatencyMs = 40)
         {
             _telemetry = telemetry;
             _threadBooster = threadBooster;
@@ -52,13 +43,6 @@ namespace BtAudioMixer.Core.Mixing
             _targetLatencyMs = targetLatencyMs;
         }
 
-        /// <summary>
-        /// Starts capturing both sources and rendering their mix to
-        /// <paramref name="outputDevice"/>. <paramref name="phoneSourceDevice"/> is the
-        /// render device the phone's AudioPlaybackConnection audio is landing on
-        /// (a virtual cable, or a device the user assigned via Windows' per-app volume
-        /// mixer); <paramref name="systemSourceDevice"/> is the system/game audio device.
-        /// </summary>
         public void Start(MMDevice phoneSourceDevice, MMDevice systemSourceDevice, MMDevice outputDevice,
             float initialPhoneVolume, float initialSystemVolume)
         {
@@ -89,13 +73,6 @@ namespace BtAudioMixer.Core.Mixing
 
         private IWavePlayer CreateWavePlayer(MMDevice device, IWaveProvider waveProvider)
         {
-            // Exclusive mode was tried here to stop Windows' own native Bluetooth
-            // A2DP render session from also playing to the same earbuds independent
-            // of our gain control — it locked the device successfully but produced
-            // no audible output on the AirBass earbuds (driver accepted the format
-            // handshake without actually rendering it, a known WASAPI exclusive-mode
-            // risk). Shared mode is what's proven to render correctly all session;
-            // the leak is solved at the Windows default-output-device level instead.
             try
             {
                 var player = new WasapiOut(device, AudioClientShareMode.Shared, useEventSync: true, latency: _targetLatencyMs);

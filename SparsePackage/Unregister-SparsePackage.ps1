@@ -1,12 +1,3 @@
-<#
-.SYNOPSIS
-    Removes the BtAudioMixer sparse package registration from this machine.
-
-.DESCRIPTION
-    Reverses what Register-SparsePackage.ps1 did.
-    Run this if you want to fully clean up, or before switching to a real MSIX build.
-    No elevation required — the package was registered per-user.
-#>
 [CmdletBinding()]
 param()
 
@@ -25,7 +16,6 @@ Write-Host "Removing $($pkg.PackageFullName)..." -ForegroundColor Cyan
 Remove-AppxPackage $pkg.PackageFullName
 Write-Host "✓ Package removed." -ForegroundColor Green
 
-# Optionally remove the self-signed cert
 $certSubject = "CN=BtAudioMixer"
 foreach ($store in @("TrustedPeople", "Root", "My")) {
     $s = [System.Security.Cryptography.X509Certificates.X509Store]::new(

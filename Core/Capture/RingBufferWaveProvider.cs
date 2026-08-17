@@ -6,11 +6,6 @@ using System.Threading;
 
 namespace BtAudioMixer.Core.Capture
 {
-    /// <summary>
-    /// Adapts a <see cref="SpscRingBuffer"/> into the <see cref="IWaveProvider"/> shape
-    /// the mixer's render pull reads from. Ported from WindowsDualAudioManager's
-    /// Core.Output.RingBufferWaveProvider.
-    /// </summary>
     public sealed class RingBufferWaveProvider : IWaveProvider
     {
         private readonly SpscRingBuffer _ringBuffer;
@@ -43,9 +38,6 @@ namespace BtAudioMixer.Core.Capture
             }
 
             int bytesRead = _ringBuffer.Read(buffer, offset, count);
-
-            double bufferedMilliseconds = (double)_ringBuffer.AvailableBytes / WaveFormat.AverageBytesPerSecond * 1000.0;
-            _telemetry.ReportBufferedMilliseconds(_channelId, bufferedMilliseconds);
 
             if (bytesRead < count)
             {

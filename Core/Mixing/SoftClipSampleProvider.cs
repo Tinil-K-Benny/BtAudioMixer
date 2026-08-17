@@ -2,12 +2,6 @@ using NAudio.Wave;
 
 namespace BtAudioMixer.Core.Mixing
 {
-    /// <summary>
-    /// Soft-clips the summed mix so two loud sources together can't hard-clip into
-    /// harsh digital distortion — tanh saturates gracefully above the [-1, 1] range
-    /// instead of chopping the waveform flat. Only engages once the signal actually
-    /// exceeds unity; quiet mixes pass through unchanged.
-    /// </summary>
     public sealed class SoftClipSampleProvider : ISampleProvider
     {
         private readonly ISampleProvider _source;
